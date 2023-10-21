@@ -1,11 +1,13 @@
 import numpy as np
+from sklearn.metrics import mean_squared_error, mean_absolute_error
 from sklearn.model_selection import KFold
 import pandas as pd  # data locations
+from math import sqrt
 
 data_location = "./ml-1m/"
 movies_location = f"{data_location}movies.dat"
 ratings_location = f"{data_location}ratings.dat"
-users_location = f"{data_location}users.dat"  # create dataframes
+users_location = f"{data_location}users.dat"
 
 column_ratings = ['UserID', 'MovieID', 'Rating', 'Zip-Timestamp']
 fields_ratings = ['UserID', 'MovieID', 'Rating']
@@ -37,51 +39,36 @@ fold = KFold(n_splits=5, shuffle=True, random_state=86)  # my birthday :)
 rmse_scores = []
 mae_scores = []
 
-for train_index, test_index in fold.split(df):
+for train_index, test_index in fold.split(df_ratings):
     train_data = df.iloc[train_index]
     test_data = df.iloc[test_index]
 
     # Create a user-movie ratings matrix
-    user_movie_matrix = pd.pivot_table(train_data, index='UserID', columns='MovieID', values='Rating').fillna(0)
+    user_movie_matrix = pd.pivot_table(train_data, values='Rating', index='UserID', columns='MovieID').fillna(0)
 
     # Perform SVD on the training data
-    U, S, Vh = np.linalg.svd(user_movie_matrix, full_matrices=True)
+    U, S, Vt = np.linalg.svd(user_movie_matrix, full_matrices=True)
 
     # Choose the number of singular values/components
     k = 10
 
-    # Perform matrix reconstruction to get predictions
+    # Construct U_k, S_k, and Vt_k
     U_k = U[:, :k]
     S_k = np.diag(S[:k])
-    Vh_k = Vh[:k, :]
-    prediction = np.dot(np.dot(U_k, S_k), Vh_k)
+    Vt_k = Vt[:k, :]
 
-    # Extract test data for evaluation
-    test_user_ids = test_data['UserID']
-    test_movie_ids = test_data['MovieID']
-    test_ratings = test_data['Rating']
+    # Make predictions using U_k, S_k, and Vt_k
+    prediction = np.dot(np.dot(U_k, S_k), Vt_k)
 
-    # Calculate RMSE and MAE for each test data point
-    rmse = 0.0
-    mae = 0.0
-    num_test_samples = len(test_user_ids)
+    # Calculate RMSE and MAE for the test set
+    user_indices = test_data['UserID'].values - 1
+    movie_indices = test_data['MovieID'].values - 1
+    ratings = test_data['Rating'].values
 
-    for i in range(num_test_samples):
-        user_id = test_user_ids.iloc[i]
-        movie_id = test_movie_ids.iloc[i]
-        rating = test_ratings.iloc[i]
+    predicted_ratings = prediction[user_indices, movie_indices]
 
-        try:
-            user_index = user_movie_matrix.index.get_loc(user_id)
-            movie_index = user_movie_matrix.columns.get_loc(movie_id)
-            predicted_rating = prediction[user_index, movie_index]
-            rmse += (rating - predicted_rating) ** 2
-            mae += abs(rating - predicted_rating)
-        except KeyError:
-            print(f"Skipping prediction for user {user_id} and movie {movie_id} because it's out of bounds.")
-
-    rmse = np.sqrt(rmse / num_test_samples)
-    mae = mae / num_test_samples
+    rmse = sqrt(mean_squared_error(ratings, predicted_ratings))
+    mae = mean_absolute_error(ratings, predicted_ratings)
 
     rmse_scores.append(rmse)
     mae_scores.append(mae)
