@@ -71,11 +71,14 @@ for train_index, test_index in fold.split(df):
         movie_id = test_movie_ids.iloc[i]
         rating = test_ratings.iloc[i]
 
-        # Check if the user and movie IDs are within the bounds
-        if user_id in user_movie_matrix.index and movie_id in user_movie_matrix.columns:
-            predicted_rating = prediction[user_id, movie_id]
+        try:
+            user_index = user_movie_matrix.index.get_loc(user_id)
+            movie_index = user_movie_matrix.columns.get_loc(movie_id)
+            predicted_rating = prediction[user_index, movie_index]
             rmse += (rating - predicted_rating) ** 2
             mae += abs(rating - predicted_rating)
+        except KeyError:
+            print(f"Skipping prediction for user {user_id} and movie {movie_id} because it's out of bounds.")
 
     rmse = np.sqrt(rmse / num_test_samples)
     mae = mae / num_test_samples
