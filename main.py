@@ -1,4 +1,8 @@
+import numpy as np
 import pandas as pd
+from sklearn.metrics import mean_squared_error, mean_absolute_error
+from sklearn.model_selection import KFold
+from math import sqrt
 
 # data locations
 data_location = "./ml-1m/"
@@ -7,24 +11,27 @@ ratings_location = f"{data_location}ratings.dat"
 users_location = f"{data_location}users.dat"
 
 # create dataframes for ratings, users, movies
-column_ratings=['UserID', 'MovieID', 'Rating', 'Zip-Timestamp']
+column_ratings = ['UserID', 'MovieID', 'Rating', 'Zip-Timestamp']
 fields_ratings = ['UserID', 'MovieID', 'Rating']
-df_ratings = pd.read_table(ratings_location,engine="python",sep="::",names=column_ratings,usecols=fields_ratings,encoding="ISO-8859-1")
+df_ratings = pd.read_table(ratings_location, engine="python", sep="::", names=column_ratings, usecols=fields_ratings,
+                           encoding="ISO-8859-1")
 print(df_ratings.head())
 
-column_users=['UserID','Gender', 'Age', 'Occupation', 'Zip-code']
+column_users = ['UserID', 'Gender', 'Age', 'Occupation', 'Zip-code']
 fields_users = ['UserID']
-df_users = pd.read_table(users_location,engine="python",sep="::",names=column_users,usecols=fields_users,encoding="ISO-8859-1")
+df_users = pd.read_table(users_location, engine="python", sep="::", names=column_users, usecols=fields_users,
+                         encoding="ISO-8859-1")
 print(df_users.head())
 
-column_movies=['MovieID', 'Title', 'Genres']
+column_movies = ['MovieID', 'Title', 'Genres']
 fields_movies = ['MovieID']
-df_movies = pd.read_table(movies_location,engine="python",sep="::",names=column_movies,usecols=fields_movies,encoding="ISO-8859-1")
+df_movies = pd.read_table(movies_location, engine="python", sep="::", names=column_movies, usecols=fields_movies,
+                          encoding="ISO-8859-1")
 print(df_movies.head())
 
 # merged dataframe containing [user_id, movie_id, rating]
-df = df_ratings.merge(df_users,on='UserID')
-df = df.merge(df_movies,on="MovieID")
+df = df_ratings.merge(df_users, on='UserID')
+df = df.merge(df_movies, on="MovieID")
 
 # import numpy as np
 # from sklearn.metrics import mean_squared_error, mean_absolute_error
@@ -106,12 +113,6 @@ df = df.merge(df_movies,on="MovieID")
 #
 # print("Average RMSE:", avg_rmse)
 # print("Average MAE:", avg_mae)
-
-import numpy as np
-import pandas as pd
-from sklearn.metrics import mean_squared_error, mean_absolute_error
-from sklearn.model_selection import KFold
-from math import sqrt
 
 ratings_data = pd.read_csv('./ml-1m//ratings.dat', sep='::',
                            names=['UserID', 'MovieID', 'Rating', 'Timestamp'], engine='python', encoding='ISO-8859-1')
