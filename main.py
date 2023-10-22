@@ -1,3 +1,31 @@
+import pandas as pd
+
+# data locations
+data_location = "./ml-1m/"
+movies_location = f"{data_location}movies.dat"
+ratings_location = f"{data_location}ratings.dat"
+users_location = f"{data_location}users.dat"
+
+# create dataframes for ratings, users, movies
+column_ratings=['UserID', 'MovieID', 'Rating', 'Zip-Timestamp']
+fields_ratings = ['UserID', 'MovieID', 'Rating']
+df_ratings = pd.read_table(ratings_location,engine="python",sep="::",names=column_ratings,usecols=fields_ratings,encoding="ISO-8859-1")
+print(df_ratings.head())
+
+column_users=['UserID','Gender', 'Age', 'Occupation', 'Zip-code']
+fields_users = ['UserID']
+df_users = pd.read_table(users_location,engine="python",sep="::",names=column_users,usecols=fields_users,encoding="ISO-8859-1")
+print(df_users.head())
+
+column_movies=['MovieID', 'Title', 'Genres']
+fields_movies = ['MovieID']
+df_movies = pd.read_table(movies_location,engine="python",sep="::",names=column_movies,usecols=fields_movies,encoding="ISO-8859-1")
+print(df_movies.head())
+
+# merged dataframe containing [user_id, movie_id, rating]
+df = df_ratings.merge(df_users,on='UserID')
+df = df.merge(df_movies,on="MovieID")
+
 # import numpy as np
 # from sklearn.metrics import mean_squared_error, mean_absolute_error
 # from sklearn.model_selection import KFold
@@ -85,22 +113,18 @@ from sklearn.metrics import mean_squared_error, mean_absolute_error
 from sklearn.model_selection import KFold
 from math import sqrt
 
-# Load the MovieLens 1M dataset
-ratings_location = './ml-1m//ratings.dat'
-ratings_data = pd.read_csv(ratings_location, sep='::', names=['UserID', 'MovieID', 'Rating', 'Timestamp'],
-                           engine='python')
+ratings_data = pd.read_csv('./ml-1m//ratings.dat', sep='::',
+                           names=['UserID', 'MovieID', 'Rating', 'Timestamp'], engine='python', encoding='ISO-8859-1')
 
-movies_data = pd.read_csv('./ml-1m//movies.dat', sep='::', names=['MovieID', 'MovieName', 'Type'],
+movies_data = pd.read_csv('./ml-1m//movies.dat', sep='::', names=['MovieID', 'MovieName', 'Genre'],
                           engine='python', encoding='ISO-8859-1')
 
-# Number of users and movies
+# No of users and movies
 num_users = ratings_data['UserID'].nunique()
-num_movies = ratings_data['MovieID'].nunique()
+num_movies = movies_data['MovieID'].nunique()
 
-# Initialize a ratings matrix
 ratings_matrix = np.zeros((num_users, num_movies))
 
-# Fill in the ratings matrix
 for row in ratings_data.itertuples():
     ratings_matrix[row.UserID - 1, row.MovieID - 1] = row.Rating
 
