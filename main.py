@@ -1,56 +1,129 @@
+# import numpy as np
+# from sklearn.metrics import mean_squared_error, mean_absolute_error
+# from sklearn.model_selection import KFold
+# import pandas as pd  # data locations
+# from math import sqrt
+#
+# movies_location = "./ml-1m/movies.dat"
+# ratings_location = "./ml-1m/ratings.dat"
+# users_location = "./ml-1m/users.dat"
+#
+# column_ratings = ['UserID', 'MovieID', 'Rating', 'Zip-Timestamp']
+# fields_ratings = ['UserID', 'MovieID', 'Rating']
+#
+# df_ratings = pd.read_table(ratings_location, engine="python", sep="::", names=column_ratings, usecols=fields_ratings,
+#                            encoding="ISO-8859-1")
+# print(df_ratings.head())
+#
+# column_users = ['UserID', 'Gender', 'Age', 'Occupation', 'Zip-code']
+# fields_users = ['UserID']
+# df_users = pd.read_table(users_location, engine="python", sep="::", names=column_users, usecols=fields_users,
+#                          encoding="ISO-8859-1")
+# print(df_users.head())
+#
+# column_movies = ['MovieID', 'Title', 'Genres']
+# fields_movies = ['MovieID']
+# df_movies = pd.read_table(movies_location, engine="python", sep="::", names=column_movies, usecols=fields_movies,
+#                           encoding="ISO-8859-1")
+# print(df_movies.head())
+#
+# df = df_ratings.merge(df_users, on='UserID')
+# df = df.merge(df_movies, on='MovieID')
+#
+# # X = df[["UserID","MovieID"]]
+# # y = df[['Rating']]
+#
+# fold = KFold(n_splits=5, shuffle=True, random_state=86)  # my birthday :)
+#
+# rmse_scores = []
+# mae_scores = []
+#
+# for train_index, test_index in fold.split(df_ratings):
+#     train_data = df.iloc[train_index]
+#     test_data = df.iloc[test_index]
+#
+#     # Create a user-movie ratings matrix
+#     user_movie_matrix = pd.pivot_table(train_data, values='Rating', index='UserID', columns='MovieID').fillna(0)
+#
+#     # Perform SVD on the training data
+#     U, S, Vt = np.linalg.svd(user_movie_matrix, full_matrices=False)
+#
+#     # Choose the number of singular values/components
+#     k = 5
+#
+#     # Construct U_k, S_k, and Vt_k
+#     U_k = U[:, :k]
+#     S_k = np.diag(S[:k])
+#     Vt_k = Vt[:k, :]
+#
+#     # Make predictions using U_k, S_k, and Vt_k
+#     prediction = np.dot(np.dot(U_k, S_k), Vt_k)
+#
+#     # Calculate RMSE and MAE for the test set
+#     user_indices = test_data['UserID'].values - 1
+#     movie_indices = test_data['MovieID'].values - 1
+#     ratings = test_data['Rating'].values
+#
+#     predicted_ratings = prediction[user_indices, movie_indices]
+#
+#     rmse = sqrt(mean_squared_error(ratings, predicted_ratings))
+#     mae = mean_absolute_error(ratings, predicted_ratings)
+#
+#     rmse_scores.append(rmse)
+#     mae_scores.append(mae)
+#
+# # Calculate the average RMSE and MAE
+# avg_rmse = np.mean(rmse_scores)
+# avg_mae = np.mean(mae_scores)
+#
+# print("Average RMSE:", avg_rmse)
+# print("Average MAE:", avg_mae)
+
 import numpy as np
+import pandas as pd
 from sklearn.metrics import mean_squared_error, mean_absolute_error
 from sklearn.model_selection import KFold
-import pandas as pd  # data locations
 from math import sqrt
 
-data_location = "./ml-1m/"
-movies_location = f"{data_location}movies.dat"
-ratings_location = f"{data_location}ratings.dat"
-users_location = f"{data_location}users.dat"
+# Load the MovieLens 1M dataset
+ratings_location = './ml-1m//ratings.dat'
+ratings_data = pd.read_csv(ratings_location, sep='::', names=['UserID', 'MovieID', 'Rating', 'Timestamp'],
+                           engine='python')
 
-column_ratings = ['UserID', 'MovieID', 'Rating', 'Zip-Timestamp']
-fields_ratings = ['UserID', 'MovieID', 'Rating']
+movies_data = pd.read_csv('./ml-1m//movies.dat', sep='::', names=['MovieID', 'MovieName', 'Type'])
 
-df_ratings = pd.read_table(ratings_location, engine="python", sep="::", names=column_ratings, usecols=fields_ratings,
-                           encoding="ISO-8859-1")
-print(df_ratings.head())
+# Number of users and movies
+num_users = ratings_data['UserID'].nunique()
+num_movies = ratings_data['MovieID'].nunique()
 
-column_users = ['UserID', 'Gender', 'Age', 'Occupation', 'Zip-code']
-fields_users = ['UserID']
-df_users = pd.read_table(users_location, engine="python", sep="::", names=column_users, usecols=fields_users,
-                         encoding="ISO-8859-1")
-print(df_users.head())
+# Initialize a ratings matrix
+ratings_matrix = np.zeros((num_users, num_movies))
 
-column_movies = ['MovieID', 'Title', 'Genres']
-fields_movies = ['MovieID']
-df_movies = pd.read_table(movies_location, engine="python", sep="::", names=column_movies, usecols=fields_movies,
-                          encoding="ISO-8859-1")
-print(df_movies.head())
+# Fill in the ratings matrix
+for row in ratings_data.itertuples():
+    ratings_matrix[row.UserID - 1, row.MovieID - 1] = row.Rating
 
-df = df_ratings.merge(df_users, on='UserID')
-df = df.merge(df_movies, on='MovieID')
-
-# X = df[["UserID","MovieID"]]
-# y = df[['Rating']]  # split data in 5
-
-fold = KFold(n_splits=5, shuffle=True, random_state=86)  # my birthday :)
+# Number of folds for cross-validation
+num_folds = 5
+kf = KFold(n_splits=num_folds)
 
 rmse_scores = []
 mae_scores = []
 
-for train_index, test_index in fold.split(df_ratings):
-    train_data = df.iloc[train_index]
-    test_data = df.iloc[test_index]
+for train_indices, test_indices in kf.split(ratings_data):
+    train_data = ratings_data.iloc[train_indices]
+    test_data = ratings_data.iloc[test_indices]
 
     # Create a user-movie ratings matrix
-    user_movie_matrix = pd.pivot_table(train_data, values='Rating', index='UserID', columns='MovieID').fillna(0)
+    user_movie_matrix = np.zeros((num_users, num_movies))
+    for row in train_data.itertuples():
+        user_movie_matrix[row.UserID - 1, row.MovieID - 1] = row.Rating
 
     # Perform SVD on the training data
-    U, S, Vt = np.linalg.svd(user_movie_matrix, full_matrices=True)
+    U, S, Vt = np.linalg.svd(user_movie_matrix, full_matrices=False)
 
     # Choose the number of singular values/components
-    k = 10
+    k = 20
 
     # Construct U_k, S_k, and Vt_k
     U_k = U[:, :k]
@@ -73,7 +146,7 @@ for train_index, test_index in fold.split(df_ratings):
     rmse_scores.append(rmse)
     mae_scores.append(mae)
 
-# Calculate the average RMSE and MAE
+# Calculate the average RMSE and MAE over all folds
 avg_rmse = np.mean(rmse_scores)
 avg_mae = np.mean(mae_scores)
 
