@@ -90,7 +90,8 @@ ratings_location = './ml-1m//ratings.dat'
 ratings_data = pd.read_csv(ratings_location, sep='::', names=['UserID', 'MovieID', 'Rating', 'Timestamp'],
                            engine='python')
 
-movies_data = pd.read_csv('./ml-1m//movies.dat', sep='::', names=['MovieID', 'MovieName', 'Type'])
+movies_data = pd.read_csv('./ml-1m//movies.dat', sep='::', names=['MovieID', 'MovieName', 'Type'],
+                          engine='python', encoding='ISO-8859-1')
 
 # Number of users and movies
 num_users = ratings_data['UserID'].nunique()
