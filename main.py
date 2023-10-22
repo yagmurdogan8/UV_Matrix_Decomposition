@@ -114,20 +114,93 @@ df = df.merge(df_movies, on="MovieID")
 # print("Average RMSE:", avg_rmse)
 # print("Average MAE:", avg_mae)
 
-ratings_data = pd.read_csv('./ml-1m//ratings.dat', sep='::',
-                           names=['UserID', 'MovieID', 'Rating', 'Timestamp'], engine='python', encoding='ISO-8859-1')
+# ratings_data = pd.read_csv('./ml-1m//ratings.dat', sep='::',
+#                            names=['UserID', 'MovieID', 'Rating', 'Timestamp'], engine='python', encoding='ISO-8859-1')
+#
+# movies_data = pd.read_csv('./ml-1m//movies.dat', sep='::', names=['MovieID', 'MovieName', 'Genre'],
+#                           engine='python', encoding='ISO-8859-1')
+#
+# # No of users and movies
+# num_users = ratings_data['UserID'].nunique()
+# num_movies = movies_data['MovieID'].nunique()
+#
+# ratings_matrix = np.zeros((num_users, num_movies))
+#
+# for row in ratings_data.itertuples():
+#     ratings_matrix[row.UserID - 1, row.MovieID - 1] = row.Rating
+#
+# # Number of folds for cross-validation
+# num_folds = 5
+# kf = KFold(n_splits=num_folds)
+#
+# rmse_scores = []
+# mae_scores = []
+#
+# for train_indices, test_indices in kf.split(ratings_data):
+#     train_data = ratings_data.iloc[train_indices]
+#     test_data = ratings_data.iloc[test_indices]
+#
+#     # Create a user-movie ratings matrix
+#     user_movie_matrix = np.zeros((num_users, num_movies))
+#     for row in train_data.itertuples():
+#         user_movie_matrix[row.UserID - 1, row.MovieID - 1] = row.Rating
+#
+#     # Perform SVD on the training data
+#     U, S, Vt = np.linalg.svd(user_movie_matrix, full_matrices=False)
+#
+#     # Choose the number of singular values/components
+#     k = 20
+#
+#     # Construct U_k, S_k, and Vt_k
+#     U_k = U[:, :k]
+#     S_k = np.diag(S[:k])
+#     Vt_k = Vt[:k, :]
+#
+#     # Make predictions using U_k, S_k, and Vt_k
+#     prediction = np.dot(np.dot(U_k, S_k), Vt_k)
+#
+#     # Calculate RMSE and MAE for the test set
+#     user_indices = test_data['UserID'].values - 1
+#     movie_indices = test_data['MovieID'].values - 1
+#     ratings = test_data['Rating'].values
+#
+#     predicted_ratings = prediction[user_indices, movie_indices]
+#
+#     rmse = sqrt(mean_squared_error(ratings, predicted_ratings))
+#     mae = mean_absolute_error(ratings, predicted_ratings)
+#
+#     rmse_scores.append(rmse)
+#     mae_scores.append(mae)
+#
+# # Calculate the average RMSE and MAE over all folds
+# avg_rmse = np.mean(rmse_scores)
+# avg_mae = np.mean(mae_scores)
+#
+# print("Average RMSE:", avg_rmse)
+# print("Average MAE:", avg_mae)
 
-movies_data = pd.read_csv('./ml-1m//movies.dat', sep='::', names=['MovieID', 'MovieName', 'Genre'],
+# Load the MovieLens 1M dataset
+
+ratings_data = pd.read_csv('./ml-1m/ratings.dat', sep='::',
+                           names=['UserID', 'MovieID', 'Rating', 'Timestamp'],engine='python', encoding='ISO-8859-1')
+movies_data = pd.read_csv('./ml-1m/movies.dat', sep='::', names=['MovieID', 'Title', 'Genre'],
                           engine='python', encoding='ISO-8859-1')
 
-# No of users and movies
-num_users = ratings_data['UserID'].nunique()
-num_movies = movies_data['MovieID'].nunique()
+# Create a mapping from MovieID to movie indices
+movie_id_to_index = {movie_id: i for i, movie_id in enumerate(movies_data['MovieID'])}
 
+# Number of users and movies
+num_users = ratings_data['UserID'].nunique()
+num_movies = len(movies_data)
+
+# Initialize a ratings matrix
 ratings_matrix = np.zeros((num_users, num_movies))
 
+# Fill in the ratings matrix
 for row in ratings_data.itertuples():
-    ratings_matrix[row.UserID - 1, row.MovieID - 1] = row.Rating
+    movie_index = movie_id_to_index.get(row.MovieID)
+    if movie_index is not None:
+        ratings_matrix[row.UserID - 1, movie_index] = row.Rating
 
 # Number of folds for cross-validation
 num_folds = 5
@@ -143,7 +216,9 @@ for train_indices, test_indices in kf.split(ratings_data):
     # Create a user-movie ratings matrix
     user_movie_matrix = np.zeros((num_users, num_movies))
     for row in train_data.itertuples():
-        user_movie_matrix[row.UserID - 1, row.MovieID - 1] = row.Rating
+        movie_index = movie_id_to_index.get(row.MovieID)
+        if movie_index is not None:
+            user_movie_matrix[row.UserID - 1, movie_index] = row.Rating
 
     # Perform SVD on the training data
     U, S, Vt = np.linalg.svd(user_movie_matrix, full_matrices=False)
@@ -161,7 +236,7 @@ for train_indices, test_indices in kf.split(ratings_data):
 
     # Calculate RMSE and MAE for the test set
     user_indices = test_data['UserID'].values - 1
-    movie_indices = test_data['MovieID'].values - 1
+    movie_indices = [movie_id_to_index.get(movie_id) for movie_id in test_data['MovieID']]
     ratings = test_data['Rating'].values
 
     predicted_ratings = prediction[user_indices, movie_indices]
